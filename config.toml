@@ -1,0 +1,16 @@
+filesystems = ["/root"]
+
+[remote]
+host     = ""
+port     = 22
+user     = "root"
+password = ""
+
+[backup]
+dir = "/var/tmp"
+filename = "snapshot-{{timestamp}}.tar.gz"  
+
+
+[options]
+download_to_local = true
+local_download_dir = "./snapshots"
