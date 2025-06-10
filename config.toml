@@ -1,0 +1,17 @@
+filesystems = ["/root"]
+
+[remote]
+host     = ""
+port     = 22
+user     = "root"
+password = ""
+
+private_key = "/root/.ssh/id_rsa"  
+
+[backup]
+dir      = "/backup"
+filename = "snapshot-{{timestamp}}.tar.gz"  
+
+[options]
+download_to_local = true
+local_download_dir = "./snapshots"
