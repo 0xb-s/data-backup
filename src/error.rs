@@ -11,6 +11,11 @@ pub enum AppError {
     Io(#[from] io::Error),
     #[error("remote command exit status {0}")]
     RemoteExit(i32),
+    #[error("remote {0}")]
+    Remote(String),
+
+    #[error("validation error: {0}")]
+    Validation(String),
 }
 
 #[derive(Debug, Error)]

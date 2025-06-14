@@ -91,6 +91,7 @@ impl fmt::Display for Filesystem {
 
 #[derive(Debug, Deserialize)]
 pub struct Config {
+    pub mode: String,
     /// List of filesystem paths to include in the snapshot (e.g. `/root`, `/var/www`).
     pub filesystems: Vec<Filesystem>,
     /// Remote SSH connection parameters.
@@ -99,6 +100,9 @@ pub struct Config {
     pub backup: Backup,
     /// Optional feature toggles.
     pub options: Options,
+
+    #[serde(default)]
+    pub dd: Option<DdConfig>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -171,4 +175,40 @@ pub fn load<P: AsRef<Path>>(path: P) -> Result<Config, ConfigError> {
     }
 
     Ok(cfg)
+}
+#[derive(Debug, Deserialize)]
+pub struct DdConfig {
+    /// Can be: `/dev/vda`, `UUID=...`, or `SERIAL=...`
+    pub device: String,
+
+    /// Block size in bytes. Default: 65536
+    #[serde(default = "DdConfig::default_block_size")]
+    pub block_size: u64,
+
+    /// "none" | "gzip" | "zstd" | "xz"
+    #[serde(default = "DdConfig::default_compression")]
+    pub compression: String,
+
+    /// "fresh" | "continue"
+    #[serde(default = "DdConfig::default_resume")]
+    pub resume: String,
+
+    /// If true, runs `sudo dd` remotely
+    #[serde(default = "DdConfig::default_sudo")]
+    pub sudo: bool,
+}
+
+impl DdConfig {
+    fn default_block_size() -> u64 {
+        65536
+    }
+    fn default_compression() -> String {
+        "none".into()
+    }
+    fn default_resume() -> String {
+        "fresh".into()
+    }
+    fn default_sudo() -> bool {
+        true
+    }
 }

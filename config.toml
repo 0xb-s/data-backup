@@ -1,17 +1,30 @@
-filesystems = ["/root"]
+# Select backup mode: "tar" for filesystem backup, "dd" for full disk image
+mode = "dd"  # or "tar"
+
+# Filesystems to include in tar backup (ignored in dd mode)
+filesystems = ["/root", "/etc", "/home"]
 
 [remote]
-host     = ""
-port     = 22
-user     = "root"
-password = ""
+host     = "192.168.1.100"         # IP address or hostname of remote machine
+port     = 22                      # SSH port
+user     = "root"                  # SSH username
+password = "your-password"        # optional if using private key
 
-private_key = "/root/.ssh/id_rsa"  
+# Optional SSH private key path (used instead of password if present)
+private_key = "/root/.ssh/id_rsa"
 
 [backup]
-dir      = "/backup"
-filename = "snapshot-{{timestamp}}.tar.gz"  
+# Used only by tar mode
+dir      = "/backup"                             # remote target dir for tar
+filename = "snapshot-{{timestamp}}.tar.gz"       # tar archive name (timestamp will be replaced)
 
 [options]
-download_to_local = true
-local_download_dir = "./snapshots"
+download_to_local  = true                        # whether to download after creation
+local_download_dir = "./snapshots"               # local folder for all backups
+
+[dd]
+device      = "/dev/vda"         # or UUID=... or SERIAL=...
+block_size  = 65536              # optional, in bytes (default 65536)
+compression = "zstd"             # "none", "gzip", "zstd", "xz"
+resume      = "continue"         # "fresh" or "continue"
+sudo        = true               # whether to run dd/lsblk as sudo
