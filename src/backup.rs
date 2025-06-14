@@ -1,5 +1,6 @@
 use crate::{
     config::Config,
+    dd::{DdBuilder, run_once},
     error::AppError,
     metadata::{BackupMeta, JsonWriter},
     ssh::Ssh,
@@ -66,4 +67,14 @@ fn resolve_filename(template: &str) -> String {
     } else {
         template.into()
     }
+}
+
+pub fn run_dd(cfg: &Config) -> Result<(), AppError> {
+    log::info!("Running dd snapshot from config");
+
+    let dd_cfg = DdBuilder::new(cfg).build()?;
+    let meta = run_once(dd_cfg)?;
+
+    log::info!("Snapshot saved to {}", meta.local_path);
+    Ok(())
 }

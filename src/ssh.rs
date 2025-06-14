@@ -3,15 +3,20 @@ use crate::error::AppError;
 use ssh2::Session;
 use std::{
     io::{Read, Write},
-    net::{IpAddr, TcpStream},
+    net::{IpAddr, SocketAddr, TcpStream},
     path::Path,
     time::Duration,
 };
 
 pub struct Ssh {
     session: Session,
+    peer: SocketAddr,
 }
-
+impl core::fmt::Debug for Ssh {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Ssh").field("peer", &self.peer).finish()
+    }
+}
 impl Ssh {
     pub fn connect(
         host: IpAddr,
@@ -25,7 +30,7 @@ impl Ssh {
         tcp.set_write_timeout(Some(Duration::from_secs(60)))?;
 
         let mut session = Session::new()?;
-        session.set_tcp_stream(tcp);
+        session.set_tcp_stream(tcp.try_clone()?);
         session.handshake()?;
 
         if let Some(key) = key_path {
@@ -38,7 +43,10 @@ impl Ssh {
             return Err(ssh2::Error::from_errno(ssh2::ErrorCode::Session(-18)).into());
         }
 
-        Ok(Self { session })
+        Ok(Self {
+            session,
+            peer: tcp.peer_addr().unwrap(),
+        })
     }
 
     pub fn exec_verbose(&self, cmd: &str) -> Result<(), AppError> {
@@ -82,5 +90,28 @@ impl Ssh {
         remote.wait_eof()?;
         pb.finish_with_message("Download complete");
         Ok(())
+    }
+    pub fn exec_capture<W: std::io::Write>(&self, cmd: &str, sink: &mut W) -> Result<(), AppError> {
+        let mut ch = self.session.channel_session()?;
+        ch.exec(cmd)?;
+        std::io::copy(&mut ch, sink)?;
+        ch.wait_close()?;
+        if ch.exit_status()? == 0 {
+            Ok(())
+        } else {
+            Err(AppError::RemoteExit(ch.exit_status()?))
+        }
+    }
+
+    /// Open channel, keep it streaming.
+    pub fn open_stream(&self, cmd: &str) -> Result<ssh2::Channel, AppError> {
+        let mut ch = self.session.channel_session()?;
+        ch.exec(cmd)?;
+        Ok(ch)
+    }
+
+    /// Handy: `<ip>:<port>` string for logs / meta.
+    pub fn remote_addr_string(&self) -> String {
+        self.peer.to_string()
     }
 }
