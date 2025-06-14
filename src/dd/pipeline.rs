@@ -17,7 +17,7 @@ use crate::{
     metadata::generator::{BackupMeta, JsonWriter},
 };
 
-/// Convenience wrapper if you just want to run immediately.
+
 pub fn run_once(cfg: DdSnapshotConfig) -> Result<DdSnapshotMeta, AppError> {
     DdPipeline::new(cfg).run()
 }
@@ -34,7 +34,7 @@ impl DdPipeline {
     pub fn run(self) -> Result<DdSnapshotMeta, AppError> {
         let cfg = self.cfg;
 
-        // -- 1. fetch device size ---------------------------------------------
+       
         let size_cmd = format!(
             "{sudo}blockdev --getsize64 {}",
             cfg.device.dev_path(),
@@ -44,7 +44,7 @@ impl DdPipeline {
         cfg.ssh.exec_capture(&size_cmd, &mut buf)?;
         let dev_size: u64 = String::from_utf8_lossy(&buf).trim().parse().unwrap_or(0);
 
-        // -- 2. prepare remote dd command -------------------------------------
+      
         let dd_cmd = format!(
             r#"{sudo}dd if={} bs={} iflag=fullblock,noatime status=progress | {}"#,
             cfg.device.dev_path(),
@@ -53,7 +53,7 @@ impl DdPipeline {
             sudo = if cfg.sudo { "sudo " } else { "" },
         );
 
-        // -- 3. local file (resume / fresh) -----------------------------------
+     
         let (mut file, offset) = match cfg.resume_mode {
             ResumeMode::Fresh => (File::create(&cfg.local_path)?, 0),
             ResumeMode::Continue => {
@@ -65,10 +65,10 @@ impl DdPipeline {
             }
         };
 
-        // -- 4. open remote channel -------------------------------------------
+     
         let mut ch = cfg.ssh.open_stream(&dd_cmd)?;
 
-        // -- 5. copy + hash ----------------------------------------------------
+   
         let mut hasher = Sha256::new();
         let pb = ProgressBar::new(dev_size.saturating_sub(offset));
         pb.set_style(
@@ -98,7 +98,7 @@ impl DdPipeline {
 
         let sha_hex = hex::encode(hasher.finalize());
 
-        // -- 6. metadata -------------------------------------------------------
+ 
         let meta = DdSnapshotMeta {
             device: cfg.device.dev_path(),
             host: cfg.ssh.remote_addr_string(),
